@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 지정토론자 스튜디오 — GPT 6 Astra</title>
+  <title>AI 지정토론자 스튜디오</title>
   <style>
     :root {
       --bg-deep: #070b14;
@@ -638,16 +638,16 @@
     <div class="header-controls">
       <label style="font-size:12px; color:var(--text-muted);">캐릭터 스타일:</label>
       <select id="avatarStyleSelect">
-        <option value="astra">Astra (여성 학술 AI 아바타)</option>
-        <option value="nova">Nova (남성 학술 AI 아바타)</option>
-        <option value="hologram">Holo-Core (미래형 홀로그램 AI)</option>
+        <option value="astra">캐릭터 1 (여성 학술 AI 아바타)</option>
+        <option value="nova">캐릭터 2 (남성 학술 AI 아바타)</option>
+        <option value="hologram">캐릭터 3 (미래형 홀로그램 AI)</option>
       </select>
 
       <label style="font-size:12px; color:var(--text-muted);">음성(TTS):</label>
       <select id="voiceSelect">
-        <option value="ko-KR-SunHiNeural">Astra (여성 · 차분한 학술 톤)</option>
-        <option value="ko-KR-HyunsuMultilingualNeural">Nova (남성 · 중후한 학술 톤)</option>
-        <option value="ko-KR-InJoonNeural">Orion (남성 · 명확한 발표 톤)</option>
+        <option value="ko-KR-SunHiNeural">음성 1 (여성 · 차분한 학술 톤)</option>
+        <option value="ko-KR-HyunsuMultilingualNeural">음성 2 (남성 · 중후한 학술 톤)</option>
+        <option value="ko-KR-InJoonNeural">음성 3 (남성 · 명확한 발표 톤)</option>
       </select>
 
       <button id="toggleDrawerBtn" title="대본 목록 및 편집창 열기/닫기">대본 편집 / 목록</button>
@@ -669,7 +669,7 @@
             <div class="speaker-info">
               <div class="status-dot" id="statusDot"></div>
               <div>
-                <div class="speaker-name" id="speakerName">GPT 6 - Astra</div>
+                <div class="speaker-name" id="speakerName">캐릭터 1</div>
                 <div class="speaker-role" id="speakerStatusText">AI 지정토론자 · 대기 중</div>
               </div>
             </div>
@@ -909,7 +909,7 @@
       const docSubtitleEl = document.getElementById("docSubtitle");
       if (docSubtitleEl) docSubtitleEl.textContent = data.subtitle || "";
       const speakerNameEl = document.getElementById("speakerName");
-      if (speakerNameEl) speakerNameEl.textContent = data.speaker || "GPT 6 - Astra";
+      if (speakerNameEl) speakerNameEl.textContent = "캐릭터 1";
       const rawScriptInputEl = document.getElementById("rawScriptInput");
       if (rawScriptInputEl) rawScriptInputEl.value = data.raw_text || "";
 
@@ -1653,11 +1653,17 @@
 
     document.getElementById("avatarStyleSelect").onchange = (e) => {
       avatarStyle = e.target.value;
+      const speakerNameEl = document.getElementById("speakerName");
       if (avatarStyle === "nova") {
         document.getElementById("voiceSelect").value = "ko-KR-HyunsuMultilingualNeural";
+        if (speakerNameEl) speakerNameEl.textContent = "캐릭터 2";
       } else if (avatarStyle === "astra") {
         document.getElementById("voiceSelect").value = "ko-KR-SunHiNeural";
+        if (speakerNameEl) speakerNameEl.textContent = "캐릭터 1";
+      } else if (avatarStyle === "hologram") {
+        if (speakerNameEl) speakerNameEl.textContent = "캐릭터 3";
       }
+      if (isPlaying) playCurrentSegment();
     };
 
     document.getElementById("voiceSelect").onchange = () => {

@@ -14,9 +14,9 @@ CACHE_DIR = BASE_DIR / ".tts_cache"
 CACHE_DIR.mkdir(exist_ok=True)
 
 AVAILABLE_VOICES = [
-    {"id": "ko-KR-SunHiNeural", "name": "Astra (여성 · 차분하고 또렷한 학술 톤)", "gender": "female"},
-    {"id": "ko-KR-HyunsuMultilingualNeural", "name": "Nova (남성 · 중후하고 신뢰감 있는 학술 톤)", "gender": "male"},
-    {"id": "ko-KR-InJoonNeural", "name": "Orion (남성 · 밝고 명확한 발표 톤)", "gender": "male"},
+    {"id": "ko-KR-SunHiNeural", "name": "음성 1 (여성 · 차분하고 또렷한 학술 톤)", "gender": "female"},
+    {"id": "ko-KR-HyunsuMultilingualNeural", "name": "음성 2 (남성 · 중후하고 신뢰감 있는 학술 톤)", "gender": "male"},
+    {"id": "ko-KR-InJoonNeural", "name": "음성 3 (남성 · 밝고 명확한 발표 톤)", "gender": "male"},
 ]
 
 
