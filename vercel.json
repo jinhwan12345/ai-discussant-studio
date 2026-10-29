@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/:route*",
-      "destination": "/api/index.py?route=:route*"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py?route=$1"
     }
   ]
 }
