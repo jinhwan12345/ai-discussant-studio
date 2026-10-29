@@ -204,6 +204,16 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path, qs = self._resolve_api_path()
 
+        if path in ("/", "/index.html", ""):
+            html_bytes = (BASE_DIR / "index.html").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(html_bytes)))
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.end_headers()
+            self.wfile.write(html_bytes)
+            return
+
         if path == "/api/script/default":
             self._send_json(load_default_script())
             return
