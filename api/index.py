@@ -192,9 +192,17 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def do_GET(self):
+    def _resolve_api_path(self):
         parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
+        qs = urllib.parse.parse_qs(parsed.query)
+        route = qs.get("route", [None])[0]
+        if route:
+            route = route.strip("/")
+            return f"/api/{route}", qs
+        return parsed.path, qs
+
+    def do_GET(self):
+        path, qs = self._resolve_api_path()
 
         if path == "/api/script/default":
             self._send_json(load_default_script())
@@ -205,7 +213,6 @@ class handler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/tts":
-            qs = urllib.parse.parse_qs(parsed.query)
             text = (qs.get("text", [""])[0]).strip()
             voice = qs.get("voice", ["ko-KR-SunHiNeural"])[0]
             rate = qs.get("rate", ["+0%"])[0]
@@ -226,8 +233,7 @@ class handler(BaseHTTPRequestHandler):
         self._send_json({"status": "ok", "path": path})
 
     def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
+        path, _ = self._resolve_api_path()
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length) if content_length > 0 else b""
 
