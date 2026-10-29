@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 지정토론자 스튜디오 — GPT 6 Astra</title>
+  <style>
+    :root {
+      --bg-deep: #070b14;
+      --bg-panel: rgba(15, 23, 42, 0.82);
+      --bg-card: rgba(30, 41, 59, 0.65);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --accent-secondary: #818cf8;
+      --question-gold: #fbbf24;
+      --question-bg: rgba(251, 191, 36, 0.14);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-subtle: rgba(148, 163, 184, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      background: radial-gradient(circle at 35% 25%, #111c38 0%, #070b14 70%);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Forum Header */
+    header {
+      height: 64px;
+      padding: 0 24px;
+      background: rgba(7, 11, 20, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .forum-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .forum-badge {
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+    }
+
+    .forum-titles h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .forum-titles p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    select, button {
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text-main);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid var(--border-subtle);
+      padding: 7px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      border-color: var(--accent);
+      background: rgba(51, 65, 85, 0.9);
+    }
+
+    button.primary-btn {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border-color: #38bdf8;
+      font-weight: 600;
+    }
+
+    button.primary-btn:hover {
+      filter: brightness(1.12);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Main Workspace Layout */
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Left/Center Stage Area */
+    .stage-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      padding: 20px 32px 24px;
+      overflow: hidden;
+    }
+
+    /* Section Navigation Pills */
+    .section-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      z-index: 10;
+    }
+
+    .section-pill {
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s;
+      max-width: 240px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .section-pill.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+
+    /* Center Character + Context Split */
+    .stage-center {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 32px;
+      align-items: center;
+      min-height: 0;
+      margin: 12px 0;
+    }
+
+    /* Character Avatar Frame */
+    .avatar-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-height: 500px;
+      background: radial-gradient(circle at 50% 35%, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.85) 75%);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(56, 189, 248, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .avatar-container.speaking {
+      border-color: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 35px rgba(56, 189, 248, 0.25);
+    }
+
+    .avatar-container.question-mode {
+      border-color: var(--question-gold);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
+    }
+
+    #avatarCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Nameplate overlay on Avatar */
+    .avatar-nameplate {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: rgba(7, 11, 20, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .speaker-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: all 0.2s;
+    }
+
+    .status-dot.live {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+      animation: pulseDot 1.4s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.75; }
+    }
+
+    .speaker-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .speaker-role {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    #waveformCanvas {
+      width: 110px;
+      height: 28px;
+    }
+
+    /* Right Side of Stage: Presentation & Live Teleprompter Card */
+    .presentation-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .section-banner {
+      background: rgba(30, 41, 59, 0.6);
+      border-left: 4px solid var(--accent);
+      padding: 12px 18px;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .section-banner .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .section-banner .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    /* Live Speech Teleprompter Box */
+    .subtitle-box {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 20px;
+      padding: 28px 32px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .subtitle-box.question-active {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(15, 23, 42, 0.92));
+      border-color: var(--question-gold);
+      box-shadow: 0 16px 45px rgba(251, 191, 36, 0.15);
+    }
+
+    .question-tag {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: var(--question-gold);
+      color: #0f172a;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+
+    .subtitle-box.question-active .question-tag {
+      display: inline-flex;
+    }
+
+    .current-speech-text {
+      font-size: 25px;
+      line-height: 1.65;
+      font-weight: 600;
+      color: #ffffff;
+      word-break: keep-all;
+      letter-spacing: -0.3px;
+    }
+
+    .next-speech-preview {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Bottom Playback Bar */
+    .playback-bar {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .transport-btns {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .play-btn {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      border: none;
+      color: white;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+    }
+
+    .progress-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 999px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    .speed-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid var(--border-subtle);
+      padding: 5px 11px;
+      border-radius: 10px;
+    }
+
+    .control-group input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 88px;
+      height: 5px;
+      background: rgba(71, 85, 105, 0.9);
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .value-badge {
+      font-weight: 700;
+      color: #f8fafc;
+      min-width: 36px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 2px 4px;
+      font-size: 15px;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+    .icon-btn:hover {
+      background: transparent;
+      transform: scale(1.1);
+    }
+
+    /* Right Collapsible Script Drawer */
+    .script-drawer {
+      width: 390px;
+      background: rgba(11, 17, 30, 0.94);
+      border-left: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      transition: margin-right 0.3s ease;
+    }
+
+    .script-drawer.collapsed {
+      margin-right: -390px;
+    }
+
+    .drawer-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .drawer-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .drawer-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .segment-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .segment-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid transparent;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .segment-item:hover {
+      background: rgba(51, 65, 85, 0.6);
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+
+    .segment-item.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .segment-item.section-header-item {
+      background: rgba(79, 70, 229, 0.2);
+      border-left: 3px solid #818cf8;
+      font-weight: 700;
+      color: #e0e7ff;
+    }
+
+    .segment-item.question-item {
+      border-left: 3px solid var(--question-gold);
+    }
+
+    .segment-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Script Editor Panel inside Drawer */
+    .editor-panel {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      padding: 14px;
+      gap: 10px;
+    }
+
+    .editor-panel.active {
+      display: flex;
+    }
+
+    .editor-panel textarea {
+      flex: 1;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px;
+      color: #f8fafc;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .shortcut-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 1100px) {
+      .stage-center {
+        grid-template-columns: 360px 1fr;
+      }
+      .current-speech-text {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Forum Header -->
+  <header>
+
+    <div class="header-controls">
+      <label style="font-size:12px; color:var(--text-muted);">캐릭터 스타일:</label>
+      <select id="avatarStyleSelect">
+        <option value="astra">Astra (여성 학술 AI 아바타)</option>
+        <option value="nova">Nova (남성 학술 AI 아바타)</option>
+        <option value="hologram">Holo-Core (미래형 홀로그램 AI)</option>
+      </select>
+
+      <label style="font-size:12px; color:var(--text-muted);">음성(TTS):</label>
+      <select id="voiceSelect">
+        <option value="ko-KR-SunHiNeural">Astra (여성 · 차분한 학술 톤)</option>
+        <option value="ko-KR-HyunsuMultilingualNeural">Nova (남성 · 중후한 학술 톤)</option>
+        <option value="ko-KR-InJoonNeural">Orion (남성 · 명확한 발표 톤)</option>
+      </select>
+
+      <button id="toggleDrawerBtn" title="대본 목록 및 편집창 열기/닫기">대본 편집 / 목록</button>
+      <button id="fullscreenBtn" title="발표장 전체화면 (단축키 F)">전체화면</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <div class="stage-area">
+      <!-- Section Quick Jump Pills -->
+      <div class="section-nav" id="sectionNav"></div>
+
+      <!-- Center Avatar + Teleprompter -->
+      <div class="stage-center">
+        <div class="avatar-container" id="avatarContainer">
+          <canvas id="avatarCanvas" width="520" height="540"></canvas>
+          <div class="avatar-nameplate">
+            <div class="speaker-info">
+              <div class="status-dot" id="statusDot"></div>
+              <div>
+                <div class="speaker-name" id="speakerName">GPT 6 - Astra</div>
+                <div class="speaker-role" id="speakerStatusText">AI 지정토론자 · 대기 중</div>
+              </div>
+            </div>
+            <canvas id="waveformCanvas" width="110" height="28"></canvas>
+          </div>
+        </div>
+
+        <div class="presentation-panel">
+          <div class="section-banner">
+            <div class="label">CURRENT DISCUSSION SECTION</div>
+            <div class="section-title" id="currentSectionTitle">0. 들어가며: ‘보조 도구’라는 결론 이후의 과제</div>
+          </div>
+
+          <div class="subtitle-box" id="subtitleBox">
+            <div class="question-tag">★ 발표자에게 드리는 핵심 질문</div>
+            <div class="current-speech-text" id="currentSpeechText">
+              대본을 불러오는 중입니다...
+            </div>
+            <div class="next-speech-preview" id="nextSpeechPreview">
+              <span>다음 대사:</span> <span id="nextSpeechText">-</span>
+            </div>
+          </div>
+
+          <div class="shortcut-hint">
+            <b>조작 단축키:</b> [Space] 재생/일시정지 &nbsp;|&nbsp; [←/→] 이전/다음 문장 &nbsp;|&nbsp; [↑/↓] 볼륨 조절 &nbsp;|&nbsp; [ [ / ] ] 속도 조절 &nbsp;|&nbsp; [F] 전체화면
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Playback Transport Bar -->
+      <div class="playback-bar">
+        <div class="transport-btns">
+          <button id="prevBtn" title="이전 문장 (←)">⏮ 이전</button>
+          <button class="play-btn" id="playPauseBtn">▶ 토론 시작</button>
+          <button id="nextBtn" title="다음 문장 (→)">다음 ⏭</button>
+        </div>
+
+        <div class="progress-wrapper">
+          <div class="progress-info">
+            <span id="segmentCounter">문장 1 / 1</span>
+            <span id="autoPlayStatus">연속 자동 낭독 켜짐</span>
+          </div>
+          <div class="progress-track" id="progressTrack">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+
+        <div class="speed-controls">
+          <!-- Volume Control (0% ~ 100%) -->
+          <div class="control-group" title="소리 크기 조절 (단축키 ↑ / ↓)">
+            <button class="icon-btn" id="muteBtn" title="음소거 켜기/끄기 (M)">🔊</button>
+            <input type="range" id="volumeSlider" min="0" max="100" step="1" value="100" />
+            <span class="value-badge" id="volumeValueText">100%</span>
+          </div>
+
+          <!-- Speed Control (0.5x ~ 2.0x) -->
+          <div class="control-group" title="낭독 속도 조절 0.5x ~ 2.0x (단축키 [ / ])">
+            <span>속도</span>
+            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" />
+            <span class="value-badge" id="speedValueText" style="min-width:32px;">1.0x</span>
+          </div>
+
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;">
+            <input type="checkbox" id="autoAdvanceToggle" checked /> 연속 재생
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Script Timeline & Live Editor Drawer -->
+    <aside class="script-drawer" id="scriptDrawer">
+      <div class="drawer-header">
+        <h2>대본 타임라인 & 실시간 입력</h2>
+        <div class="drawer-tabs">
+          <button class="tab-btn active" id="tabTimelineBtn">문장 목록</button>
+          <button class="tab-btn" id="tabEditorBtn">대본 직접 수정/업로드</button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Clickable Script Segments -->
+      <div class="segment-list" id="segmentList"></div>
+
+      <!-- Tab 2: Live Raw Script Editor & File Upload -->
+      <div class="editor-panel" id="editorPanel">
+        <div style="font-size:12px; color:var(--text-muted);">
+          아래에 대본을 붙여넣거나 수정한 뒤 <b>[대본 즉시 반영]</b>을 누르면 실시간으로 문장이 분할되고 AI 캐릭터가 읽습니다. (.hwpx / .txt 파일 업로드 가능)
+        </div>
+        <textarea id="rawScriptInput" placeholder="여기에 토론 대본을 입력하세요..."></textarea>
+        <div class="editor-actions">
+          <label style="background:rgba(30,41,59,0.9); border:1px solid var(--border-subtle); padding:7px 12px; border-radius:8px; font-size:12px; cursor:pointer;">
+            📂 파일 열기 (.hwpx/.txt)
+            <input type="file" id="fileUploadInput" accept=".hwpx,.txt" style="display:none;" />
+          </label>
+          <button class="primary-btn" id="applyScriptBtn">✨ 대본 즉시 반영</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. STATE & AUDIO / LIP-SYNC ENGINE
+    // =========================================================================
+    let scriptData = null;
+    let segments = [];
+    let currentIndex = 0;
+    let isPlaying = false;
+    let avatarStyle = "astra";
+
+    // Native HTML5 Audio Player + PCM Waveform Lip-Sync Analyzer
+    let audioCtx = null;
+    const mainAudio = new Audio();
+    mainAudio.preload = "auto";
+    let currentAudio = null;
+    let currentPcmData = null;
+    let currentSampleRate = 24000;
+    let currentVolume = 1.0; // 0.0 ~ 1.0
+    let isMuted = false;
+    let currentSpeed = 1.0;  // 0.5 ~ 2.0
+    const audioBlobCache = new Map(); // key -> { url, pcmData, sampleRate }
+
+    // Real-time speech metrics (updated at 60fps)
+    const speechState = {
+      volume: 0,       // 0..1 overall amplitude
+      jawOpen: 0,      // 0..1 vertical mouth opening
+      mouthWide: 0.5,  // 0..1 horizontal mouth spread
+      lipRound: 0,     // 0..1 'O/U' rounding
+      pitchEnergy: 0,  // upper-mid frequency energy for eyebrow emphasis
+      headNod: 0,
+    };
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+
+    function applyAudioVolume() {
+      const effectiveVol = isMuted ? 0 : currentVolume;
+      mainAudio.volume = Math.max(0, Math.min(1, effectiveVol));
+      mainAudio.muted = isMuted;
+      const muteBtn = document.getElementById("muteBtn");
+      if (muteBtn) {
+        if (isMuted || currentVolume === 0) {
+          muteBtn.textContent = "🔇";
+        } else if (currentVolume < 0.5) {
+          muteBtn.textContent = "🔉";
+        } else {
+          muteBtn.textContent = "🔊";
+        }
+      }
+      const volText = document.getElementById("volumeValueText");
+      if (volText) {
+        volText.textContent = `${Math.round(effectiveVol * 100)}%`;
+      }
+    }
+
+    function applyAudioSpeed() {
+      mainAudio.preservesPitch = true;
+      mainAudio.mozPreservesPitch = true;
+      mainAudio.webkitPreservesPitch = true;
+      mainAudio.playbackRate = currentSpeed;
+      const speedText = document.getElementById("speedValueText");
+      if (speedText) {
+        speedText.textContent = `${currentSpeed.toFixed(1)}x`;
+      }
+    }
+
+    function getTtsKey(text) {
+      const voice = document.getElementById("voiceSelect").value;
+      return `${voice}|${text}`;
+    }
+
+    async function fetchTtsAudioEntry(text) {
+      const key = getTtsKey(text);
+      if (audioBlobCache.has(key)) {
+        return audioBlobCache.get(key);
+      }
+      const voice = document.getElementById("voiceSelect").value;
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, voice, rate: "+0%" })
+      });
+      if (!res.ok) throw new Error("TTS request failed");
+      const arrayBuf = await res.arrayBuffer();
+      const blob = new Blob([arrayBuf], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+
+      let pcmData = null;
+      let sampleRate = 24000;
+      try {
+        initAudioContext();
+        if (audioCtx) {
+          const decoded = await audioCtx.decodeAudioData(arrayBuf.slice(0));
+          pcmData = decoded.getChannelData(0);
+          sampleRate = decoded.sampleRate;
+        }
+      } catch (e) {
+        console.warn("PCM decode skipped:", e);
+      }
+
+      const entry = { url, pcmData, sampleRate };
+      audioBlobCache.set(key, entry);
+      return entry;
+    }
+
+    function prefetchSegment(idx) {
+      if (idx >= 0 && idx < segments.length) {
+        fetchTtsAudioEntry(segments[idx].text).catch(() => {});
+      }
+    }
+
+    // =========================================================================
+    // 2. SCRIPT LOADING & UI SYNC
+    // =========================================================================
+    async function loadDefaultScript() {
+      const res = await fetch("/api/script/default");
+      const data = await res.json();
+      applyScriptData(data);
+    }
+
+    function applyScriptData(data) {
+      stopPlayback();
+      scriptData = data;
+      segments = data.segments || [];
+      currentIndex = 0;
+
+      const docTitleEl = document.getElementById("docTitle");
+      if (docTitleEl) docTitleEl.textContent = data.title || "AI 지정토론";
+      const docSubtitleEl = document.getElementById("docSubtitle");
+      if (docSubtitleEl) docSubtitleEl.textContent = data.subtitle || "";
+      const speakerNameEl = document.getElementById("speakerName");
+      if (speakerNameEl) speakerNameEl.textContent = data.speaker || "GPT 6 - Astra";
+      const rawScriptInputEl = document.getElementById("rawScriptInput");
+      if (rawScriptInputEl) rawScriptInputEl.value = data.raw_text || "";
+
+      renderSectionNav();
+      renderSegmentList();
+      updateStageUI();
+
+      // Pre-fetch first two segments immediately for instant start
+      prefetchSegment(0);
+      prefetchSegment(1);
+    }
+
+    function renderSectionNav() {
+      const nav = document.getElementById("sectionNav");
+      nav.innerHTML = "";
+      const seenSections = new Set();
+      segments.forEach((seg, idx) => {
+        if (!seenSections.has(seg.section)) {
+          seenSections.add(seg.section);
+          const pill = document.createElement("div");
+          pill.className = "section-pill";
+          pill.dataset.section = seg.section;
+          pill.textContent = seg.section;
+          pill.onclick = () => jumpToSegment(idx, isPlaying);
+          nav.appendChild(pill);
+        }
+      });
+    }
+
+    function renderSegmentList() {
+      const list = document.getElementById("segmentList");
+      list.innerHTML = "";
+      segments.forEach((seg, idx) => {
+        const item = document.createElement("div");
+        item.className = "segment-item";
+        if (seg.type === "section_header") item.classList.add("section-header-item");
+        if (seg.is_question) item.classList.add("question-item");
+        item.id = `seg-item-${idx}`;
+
+        const badge = seg.is_question
+          ? `<span style="color:#fbbf24; font-weight:700;">★ 핵심 질문</span>`
+          : `<span>#${idx + 1}</span>`;
+
+        item.innerHTML = `
+          <div class="segment-meta">
+            ${badge}
+            <span>${seg.section.split(":")[0]}</span>
+          </div>
+          <div>${seg.text}</div>
+        `;
+        item.onclick = () => jumpToSegment(idx, true);
+        list.appendChild(item);
+      });
+    }
+
+    function updateStageUI() {
+      if (!segments.length) return;
+      const seg = segments[currentIndex];
+      const nextSeg = segments[currentIndex + 1];
+
+      document.getElementById("currentSectionTitle").textContent = seg.section;
+      document.getElementById("currentSpeechText").textContent = seg.text;
+      document.getElementById("nextSpeechText").textContent = nextSeg ? nextSeg.text : "마지막 문장입니다.";
+
+      const subtitleBox = document.getElementById("subtitleBox");
+      const avatarContainer = document.getElementById("avatarContainer");
+      if (seg.is_question) {
+        subtitleBox.classList.add("question-active");
+        avatarContainer.classList.add("question-mode");
+      } else {
+        subtitleBox.classList.remove("question-active");
+        avatarContainer.classList.remove("question-mode");
+      }
+
+      // Update section pills
+      document.querySelectorAll(".section-pill").forEach(pill => {
+        pill.classList.toggle("active", pill.dataset.section === seg.section);
+      });
+
+      // Update segment timeline highlight
+      document.querySelectorAll(".segment-item").forEach((el, i) => {
+        el.classList.toggle("active", i === currentIndex);
+      });
+      const activeEl = document.getElementById(`seg-item-${currentIndex}`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // Progress bar
+      document.getElementById("segmentCounter").textContent = `문장 ${currentIndex + 1} / ${segments.length}`;
+      const pct = ((currentIndex + 1) / segments.length) * 100;
+      document.getElementById("progressFill").style.width = `${pct}%`;
+    }
+
+    // =========================================================================
+    // 3. PLAYBACK CONTROLLER
+    // =========================================================================
+    async function playCurrentSegment() {
+      if (!segments.length) return;
+      initAudioContext();
+
+      mainAudio.pause();
+      window.speechSynthesis?.cancel();
+
+      isPlaying = true;
+      updateTransportButtons();
+      updateStageUI();
+
+      // Pre-fetch next 2 segments in background
+      prefetchSegment(currentIndex + 1);
+      prefetchSegment(currentIndex + 2);
+
+      const seg = segments[currentIndex];
+      document.getElementById("speakerStatusText").textContent = "AI 음성 합성 준비 중...";
+
+      try {
+        const entry = await fetchTtsAudioEntry(seg.text);
+        if (!isPlaying) return; // user paused while fetching
+
+        currentPcmData = entry.pcmData;
+        currentSampleRate = entry.sampleRate || 24000;
+
+        mainAudio.src = entry.url;
+        currentAudio = mainAudio;
+        applyAudioVolume();
+        applyAudioSpeed();
+
+        document.getElementById("speakerStatusText").textContent = seg.is_question
+          ? "AI 지정토론자 · 핵심 질문 발화 중"
+          : "AI 지정토론자 · 실시간 발화 중";
+
+        mainAudio.onended = () => {
+          if (!isPlaying) return;
+          const autoAdvance = document.getElementById("autoAdvanceToggle").checked;
+          if (autoAdvance && currentIndex < segments.length - 1) {
+            currentIndex++;
+            setTimeout(() => {
+              if (isPlaying) playCurrentSegment();
+            }, 380);
+          } else {
+            stopPlayback();
+          }
+        };
+
+        await mainAudio.play();
+      } catch (err) {
+        console.warn("Edge-TTS playback fallback to browser TTS:", err);
+        fallbackBrowserSpeak(seg.text);
+      }
+    }
+
+    function fallbackBrowserSpeak(text) {
+      if (!("speechSynthesis" in window)) {
+        stopPlayback();
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ko-KR";
+      utter.rate = currentSpeed;
+      utter.volume = isMuted ? 0 : currentVolume;
+      utter.onend = () => {
+        if (isPlaying && currentIndex < segments.length - 1) {
+          currentIndex++;
+          playCurrentSegment();
+        } else {
+          stopPlayback();
+        }
+      };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      mainAudio.pause();
+      currentAudio = null;
+      currentPcmData = null;
+      window.speechSynthesis?.cancel();
+      speechState.volume = 0;
+      speechState.jawOpen = 0;
+      updateTransportButtons();
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        playCurrentSegment();
+      }
+    }
+
+    function jumpToSegment(idx, autoPlay = false) {
+      if (idx < 0 || idx >= segments.length) return;
+      currentIndex = idx;
+      if (autoPlay) {
+        playCurrentSegment();
+      } else {
+        stopPlayback();
+        updateStageUI();
+        prefetchSegment(currentIndex);
+      }
+    }
+
+    function updateTransportButtons() {
+      const btn = document.getElementById("playPauseBtn");
+      const dot = document.getElementById("statusDot");
+      const container = document.getElementById("avatarContainer");
+      const statusText = document.getElementById("speakerStatusText");
+
+      if (isPlaying) {
+        btn.innerHTML = "⏸ 일시정지";
+        dot.classList.add("live");
+        container.classList.add("speaking");
+      } else {
+        btn.innerHTML = "▶ 시작";
+        dot.classList.remove("live");
+        container.classList.remove("speaking");
+        statusText.textContent = "AI 지정토론자 · 대기 중";
+      }
+    }
+
+    // =========================================================================
+    // 4. REAL-TIME 2.5D AI CHARACTER & LIP-SYNC RENDERER (60 FPS)
+    // =========================================================================
+    const avatarCanvas = document.getElementById("avatarCanvas");
+    const ctx = avatarCanvas.getContext("2d");
+    const waveCanvas = document.getElementById("waveformCanvas");
+    const waveCtx = waveCanvas.getContext("2d");
+
+    const waveBarLevels = new Float32Array(18);
+    let blinkTimer = 0;
+    let nextBlinkAt = 180;
+    let isBlinking = false;
+    let gazeX = 0, gazeY = 0, targetGazeX = 0, targetGazeY = 0;
+
+    function updateAudioMetrics(t) {
+      if (isPlaying && currentAudio && !currentAudio.paused) {
+        let rms = 0;
+        let diffEnergy = 0;
+        let zcr = 0;
+
+        if (currentPcmData && currentPcmData.length > 0) {
+          const centerSample = Math.floor(currentAudio.currentTime * currentSampleRate);
+          const winSize = 768;
+          const startIdx = Math.max(0, Math.min(currentPcmData.length - winSize, centerSample - (winSize >> 1)));
+          let sumSq = 0;
+          let diffSq = 0;
+          let zeroCrossings = 0;
+          let prev = currentPcmData[startIdx] || 0;
+
+          for (let i = 0; i < winSize; i++) {
+            const s = currentPcmData[startIdx + i] || 0;
+            sumSq += s * s;
+            const d = s - prev;
+            diffSq += d * d;
+            if ((s >= 0 && prev < 0) || (s < 0 && prev >= 0)) zeroCrossings++;
+            prev = s;
+          }
+
+          rms = Math.sqrt(sumSq / winSize);
+          diffEnergy = Math.sqrt(diffSq / winSize);
+          zcr = zeroCrossings / winSize;
+
+          // Populate 18 waveform bars from sub-windows
+          const chunk = Math.floor(winSize / 18);
+          for (let b = 0; b < 18; b++) {
+            let bSum = 0;
+            const bStart = startIdx + b * chunk;
+            for (let k = 0; k < chunk; k++) {
+              bSum += Math.abs(currentPcmData[bStart + k] || 0);
+            }
+            const targetBar = Math.min(1, (bSum / chunk) * 4.2);
+            waveBarLevels[b] += (targetBar - waveBarLevels[b]) * 0.45;
+          }
+        } else {
+          // Procedural fallback if PCM buffer is not decoded yet
+          rms = 0.18 + Math.abs(Math.sin(t * 14)) * 0.22;
+          diffEnergy = 0.1 + Math.abs(Math.cos(t * 23)) * 0.15;
+          zcr = 0.12;
+          for (let b = 0; b < 18; b++) {
+            waveBarLevels[b] = 0.2 + Math.abs(Math.sin(t * 12 + b * 0.6)) * 0.6;
+          }
+        }
+
+        const lowEnergy = Math.min(1, Math.max(0, rms * 3.8 - diffEnergy * 1.2));
+        const midEnergy = Math.min(1, rms * 3.2);
+        const highEnergy = Math.min(1, zcr * 3.0 + diffEnergy * 2.2);
+
+        const targetVol = Math.min(1, rms * 3.8);
+        speechState.volume += (targetVol - speechState.volume) * 0.38;
+
+        // Jaw opening responds strongly to vowel amplitude
+        const targetJaw = Math.min(1, Math.max(0, (rms * 4.4 - 0.04)));
+        speechState.jawOpen += (targetJaw - speechState.jawOpen) * 0.42;
+
+        // Mouth width responds to mid/high vs low ratio (wide on 'E/I', rounder on 'O/U')
+        const targetWide = 0.42 + Math.min(0.45, highEnergy * 0.45) - Math.min(0.22, lowEnergy * 0.3);
+        speechState.mouthWide += (targetWide - speechState.mouthWide) * 0.28;
+
+        // Rounding when low vowel energy dominates over high frequency
+        const targetRound = Math.max(0, Math.min(1, (lowEnergy - highEnergy * 0.6) * 1.6));
+        speechState.lipRound += (targetRound - speechState.lipRound) * 0.25;
+
+        speechState.pitchEnergy += (highEnergy - speechState.pitchEnergy) * 0.22;
+        speechState.headNod = Math.sin(t * 6.5) * speechState.volume * 5.5;
+      } else {
+        speechState.volume *= 0.82;
+        speechState.jawOpen *= 0.78;
+        speechState.mouthWide += (0.48 - speechState.mouthWide) * 0.15;
+        speechState.lipRound *= 0.8;
+        speechState.pitchEnergy *= 0.85;
+        speechState.headNod *= 0.85;
+        for (let b = 0; b < 18; b++) waveBarLevels[b] *= 0.8;
+      }
+
+      // Draw mini waveform in nameplate
+      waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+      const bars = 18;
+      const barW = 4;
+      const gap = 2;
+      for (let i = 0; i < bars; i++) {
+        const val = isPlaying ? Math.max(0.08, waveBarLevels[i]) : 0.08;
+        const h = Math.max(3, val * 24);
+        const x = i * (barW + gap);
+        const y = (waveCanvas.height - h) / 2;
+        waveCtx.fillStyle = segments[currentIndex]?.is_question ? "#fbbf24" : "#38bdf8";
+        waveCtx.beginPath();
+        waveCtx.roundRect(x, y, barW, h, 2);
+        waveCtx.fill();
+      }
+    }
+
+    function renderAvatarFrame(timestamp) {
+      const t = timestamp * 0.001;
+      updateAudioMetrics(t);
+
+      const W = avatarCanvas.width;
+      const H = avatarCanvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Natural blinking & subtle eye gaze
+      blinkTimer++;
+      if (blinkTimer > nextBlinkAt) {
+        isBlinking = true;
+        if (blinkTimer > nextBlinkAt + 9) {
+          isBlinking = false;
+          blinkTimer = 0;
+          nextBlinkAt = 120 + Math.random() * 180;
+        }
+      }
+      if (Math.random() < 0.02) {
+        targetGazeX = (Math.random() - 0.5) * 5;
+        targetGazeY = (Math.random() - 0.5) * 3;
+      }
+      gazeX += (targetGazeX - gazeX) * 0.08;
+      gazeY += (targetGazeY - gazeY) * 0.08;
+
+      const isQuestion = segments[currentIndex]?.is_question || false;
+
+      // Ambient holographic grid background
+      drawStageBackdrop(ctx, W, H, t, isQuestion);
+
+      if (avatarStyle === "hologram") {
+        drawHologramCoreAvatar(ctx, W, H, t, isQuestion);
+      } else {
+        drawHumanScholarAvatar(ctx, W, H, t, avatarStyle === "nova", isQuestion);
+      }
+
+      requestAnimationFrame(renderAvatarFrame);
+    }
+
+    function drawStageBackdrop(ctx, W, H, t, isQuestion) {
+      ctx.save();
+      const primaryColor = isQuestion ? "rgba(251, 191, 36," : "rgba(56, 189, 248,";
+
+      // Rotating neural halo behind avatar head
+      const cx = W / 2;
+      const cy = H * 0.42;
+      const pulseR = 145 + speechState.volume * 22;
+
+      const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, pulseR + 40);
+      grad.addColorStop(0, `${primaryColor} ${0.22 + speechState.volume * 0.25})`);
+      grad.addColorStop(0.6, `${primaryColor} 0.06)`);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, pulseR + 40, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Subtle HUD ring
+      ctx.strokeStyle = `${primaryColor} ${0.22 + speechState.volume * 0.3})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 12]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 150, t * 0.25, t * 0.25 + Math.PI * 1.8);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function drawHumanScholarAvatar(ctx, W, H, t, isMale, isQuestion) {
+      const cx = W / 2;
+      const breathY = Math.sin(t * 2.1) * 3.2;
+      const headX = Math.sin(t * 1.1) * 3.5;
+      const headY = breathY + speechState.headNod;
+      const headTilt = Math.sin(t * 0.85) * 0.022 + (isQuestion ? -0.025 : 0);
+
+      const accentHex = isQuestion ? "#fbbf24" : "#38bdf8";
+
+      ctx.save();
+
+      // 1. SHOULDERS & ACADEMIC SUIT / BLAZER
+      ctx.save();
+      ctx.translate(cx, H * 0.78 + breathY);
+
+      // Suit torso
+      const suitGrad = ctx.createLinearGradient(0, -90, 0, 140);
+      suitGrad.addColorStop(0, isMale ? "#1e293b" : "#172554");
+      suitGrad.addColorStop(1, "#090d16");
+      ctx.fillStyle = suitGrad;
+      ctx.beginPath();
+      ctx.moveTo(-165, 130);
+      ctx.quadraticCurveTo(-155, -55, -65, -75);
+      ctx.lineTo(65, -75);
+      ctx.quadraticCurveTo(155, -55, 165, 130);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner shirt & collar glow
+      ctx.fillStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.moveTo(-36, -74);
+      ctx.lineTo(0, 15);
+      ctx.lineTo(36, -74);
+      ctx.closePath();
+      ctx.fill();
+
+      if (isMale) {
+        // Academic tie
+        ctx.fillStyle = "#0284c7";
+        ctx.beginPath();
+        ctx.moveTo(-10, -52);
+        ctx.lineTo(10, -52);
+        ctx.lineTo(14, 20);
+        ctx.lineTo(0, 35);
+        ctx.lineTo(-14, 20);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Futuristic Cyber-Academic Lapel Neon Trim
+      ctx.strokeStyle = accentHex;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = accentHex;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(-62, -72);
+      ctx.lineTo(-18, 22);
+      ctx.moveTo(62, -72);
+      ctx.lineTo(18, 22);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // AI Badge on left chest
+      ctx.fillStyle = accentHex;
+      ctx.beginPath();
+      ctx.arc(62, -12, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Neck
+      const skinGrad = ctx.createLinearGradient(-25, -135, 25, -60);
+      skinGrad.addColorStop(0, "#f1c6b3");
+      skinGrad.addColorStop(1, "#dfb09c");
+      ctx.fillStyle = skinGrad;
+      ctx.beginPath();
+      ctx.roundRect(-27, -125, 54, 65, 18);
+      ctx.fill();
+      ctx.restore();
+
+      // 2. ARTICULATED HEAD & FACE
+      ctx.save();
+      ctx.translate(cx + headX, H * 0.42 + headY);
+      ctx.rotate(headTilt);
+
+      // Back Hair (for female avatar Astra)
+      if (!isMale) {
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.ellipse(0, 18, 96, 118, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Ears & AI Neural Earpiece
+      ctx.fillStyle = "#eac0ad";
+      ctx.beginPath();
+      ctx.ellipse(-78, 8, 12, 22, -0.1, 0, Math.PI * 2);
+      ctx.ellipse(78, 8, 12, 22, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glowing AI Earpiece on right ear
+      ctx.strokeStyle = accentHex;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(81, 8, 9, -Math.PI * 0.6, Math.PI * 0.6);
+      ctx.stroke();
+
+      // Head / Jaw shape (slightly stretches with jawOpen!)
+      const jawExtension = speechState.jawOpen * 11;
+      const faceGrad = ctx.createRadialGradient(0, -15, 20, 0, 10, 110);
+      faceGrad.addColorStop(0, "#fde2d4");
+      faceGrad.addColorStop(1, "#ecc1ae");
+      ctx.fillStyle = faceGrad;
+
+      ctx.beginPath();
+      ctx.moveTo(-76, -30);
+      ctx.quadraticCurveTo(-78, 45, -42, 82 + jawExtension * 0.6);
+      ctx.quadraticCurveTo(0, 104 + jawExtension, 42, 82 + jawExtension * 0.6);
+      ctx.quadraticCurveTo(78, 45, 76, -30);
+      ctx.quadraticCurveTo(75, -102, 0, -102);
+      ctx.quadraticCurveTo(-75, -102, -76, -30);
+      ctx.closePath();
+      ctx.fill();
+
+      // Subtle cheek blush / holographic contour
+      ctx.fillStyle = "rgba(244, 114, 182, 0.11)";
+      ctx.beginPath();
+      ctx.ellipse(-42, 22, 18, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(42, 22, 18, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. EYES & EXPRESSIVE EYEBROWS
+      const browLift = (speechState.pitchEnergy * 10) + (isQuestion ? 5 : 0);
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = isMale ? 4.5 : 3.5;
+      ctx.lineCap = "round";
+
+      // Left Brow
+      ctx.beginPath();
+      ctx.moveTo(-54, -26 - browLift * 0.6);
+      ctx.quadraticCurveTo(-34, -36 - browLift, -15, -27 - browLift * 0.4);
+      ctx.stroke();
+
+      // Right Brow
+      ctx.beginPath();
+      ctx.moveTo(15, -27 - browLift * 0.4);
+      ctx.quadraticCurveTo(34, -36 - browLift, 54, -26 - browLift * 0.6);
+      ctx.stroke();
+
+      // Eyes
+      [-34, 34].forEach(ex => {
+        ctx.save();
+        ctx.translate(ex, -8);
+        if (isBlinking) {
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-16, 2);
+          ctx.quadraticCurveTo(0, 6, 16, 2);
+          ctx.stroke();
+        } else {
+          // Sclera
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 16, 10.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Iris (AI Azure/Cyan tint)
+          const ix = gazeX;
+          const iy = gazeY;
+          const irisGrad = ctx.createRadialGradient(ix, iy, 2, ix, iy, 8.5);
+          irisGrad.addColorStop(0, "#0f172a");
+          irisGrad.addColorStop(0.45, "#0284c7");
+          irisGrad.addColorStop(1, "#1e3a8a");
+          ctx.fillStyle = irisGrad;
+          ctx.beginPath();
+          ctx.arc(ix, iy, 8, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Eye catchlight
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(ix - 3, iy - 3, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Upper lash line
+          ctx.strokeStyle = "#0f172a";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(0, 2, 16, Math.PI * 1.12, Math.PI * 1.88);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      // Smart Academic Glasses (Holographic Rim)
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-58, -22, 48, 28, 8);
+      ctx.roundRect(10, -22, 48, 28, 8);
+      ctx.moveTo(-10, -10);
+      ctx.lineTo(10, -10);
+      ctx.stroke();
+
+      // Nose
+      ctx.strokeStyle = "#c89682";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-1, -4);
+      ctx.lineTo(-4, 22);
+      ctx.quadraticCurveTo(0, 26, 6, 22);
+      ctx.stroke();
+
+      // 4. REAL-TIME MULTI-VISEME LIP-SYNC MOUTH
+      ctx.save();
+      ctx.translate(0, 52 + jawExtension * 0.35);
+
+      const openH = 1.5 + speechState.jawOpen * 22; // Vertical opening
+      const halfW = (20 + speechState.mouthWide * 14) * (1 - speechState.lipRound * 0.28);
+
+      if (openH < 3.2) {
+        // Closed / gentle smile state
+        ctx.strokeStyle = isMale ? "#a35c5c" : "#be4b62";
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(-halfW, 0);
+        ctx.quadraticCurveTo(0, 4, halfW, 0);
+        ctx.stroke();
+      } else {
+        // Inner mouth cavity
+        ctx.fillStyle = "#450a1a";
+        ctx.beginPath();
+        ctx.moveTo(-halfW, 0);
+        ctx.quadraticCurveTo(0, -openH * 0.45, halfW, 0);
+        ctx.quadraticCurveTo(0, openH * 1.15, -halfW, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Upper Teeth
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(-halfW * 0.78, -openH * 0.35, halfW * 1.56, 6.5);
+
+        // Tongue
+        ctx.fillStyle = "#e11d48";
+        ctx.beginPath();
+        ctx.ellipse(0, openH * 0.65, halfW * 0.55, openH * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Lip outline
+        ctx.strokeStyle = isMale ? "#9f5353" : "#cf4662";
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(-halfW, 0);
+        ctx.quadraticCurveTo(0, -openH * 0.45, halfW, 0);
+        ctx.quadraticCurveTo(0, openH * 1.15, -halfW, 0);
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 5. FRONT HAIRSTYLE
+      ctx.fillStyle = isMale ? "#1e293b" : "#0f172a";
+      ctx.beginPath();
+      if (isMale) {
+        // Neat parted scholar hair
+        ctx.moveTo(-78, -22);
+        ctx.quadraticCurveTo(-82, -108, 0, -112);
+        ctx.quadraticCurveTo(82, -108, 78, -22);
+        ctx.quadraticCurveTo(55, -72, -15, -78);
+        ctx.quadraticCurveTo(-55, -75, -78, -22);
+      } else {
+        // Sleek Astra bob hair with side-swept bangs
+        ctx.moveTo(-84, 35);
+        ctx.quadraticCurveTo(-92, -105, 0, -112);
+        ctx.quadraticCurveTo(92, -105, 84, 35);
+        ctx.quadraticCurveTo(75, -55, 25, -78);
+        ctx.quadraticCurveTo(-35, -75, -74, -25);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore(); // end head
+      ctx.restore();
+    }
+
+    function drawHologramCoreAvatar(ctx, W, H, t, isQuestion) {
+      const cx = W / 2;
+      const cy = H * 0.44;
+      const color = isQuestion ? "#fbbf24" : "#38bdf8";
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Concentric audio-reactive rings
+      for (let r = 1; r <= 4; r++) {
+        const radius = 55 * r + speechState.volume * 28 * (r % 2 === 0 ? 1 : -0.6);
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.75 / r;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(20, radius), t * (r % 2 ? 0.8 : -0.6), t * (r % 2 ? 0.8 : -0.6) + Math.PI * 1.35);
+        ctx.stroke();
+      }
+
+      // Holographic digital silhouette head
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, -10, 68, 86 + speechState.jawOpen * 10, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Glowing cyber eyes
+      ctx.fillStyle = "#ffffff";
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 16;
+      ctx.fillRect(-36, -22, 22, isBlinking ? 2 : 6);
+      ctx.fillRect(14, -22, 22, isBlinking ? 2 : 6);
+
+      // Voice modulator wave mouth
+      ctx.beginPath();
+      const mw = 36;
+      for (let x = -mw; x <= mw; x += 3) {
+        const y = 32 + Math.sin(x * 0.25 + t * 18) * (speechState.jawOpen * 18);
+        if (x === -mw) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 5. UI EVENT LISTENERS & KEYBOARD SHORTCUTS
+    // =========================================================================
+    document.getElementById("playPauseBtn").onclick = togglePlayPause;
+    document.getElementById("prevBtn").onclick = () => jumpToSegment(currentIndex - 1, isPlaying);
+    document.getElementById("nextBtn").onclick = () => jumpToSegment(currentIndex + 1, isPlaying);
+
+    document.getElementById("avatarStyleSelect").onchange = (e) => {
+      avatarStyle = e.target.value;
+      if (avatarStyle === "nova") {
+        document.getElementById("voiceSelect").value = "ko-KR-HyunsuMultilingualNeural";
+      } else if (avatarStyle === "astra") {
+        document.getElementById("voiceSelect").value = "ko-KR-SunHiNeural";
+      }
+    };
+
+    document.getElementById("voiceSelect").onchange = () => {
+      if (isPlaying) playCurrentSegment();
+    };
+
+    // Volume Control (0% ~ 100% + Mute Toggle)
+    const volumeSlider = document.getElementById("volumeSlider");
+    volumeSlider.oninput = (e) => {
+      currentVolume = parseInt(e.target.value, 10) / 100;
+      if (currentVolume > 0 && isMuted) {
+        isMuted = false;
+      }
+      applyAudioVolume();
+    };
+
+    document.getElementById("muteBtn").onclick = () => {
+      isMuted = !isMuted;
+      applyAudioVolume();
+    };
+
+    // Speed Control (0.5x ~ 2.0x) - applies immediately mid-sentence!
+    const speedSlider = document.getElementById("speedSlider");
+    speedSlider.oninput = (e) => {
+      currentSpeed = parseFloat(e.target.value);
+      applyAudioSpeed();
+    };
+
+    document.getElementById("progressTrack").onclick = (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const ratio = (e.clientX - rect.left) / rect.width;
+      const targetIdx = Math.floor(ratio * segments.length);
+      jumpToSegment(targetIdx, isPlaying);
+    };
+
+    // Drawer Toggle & Tabs
+    document.getElementById("toggleDrawerBtn").onclick = () => {
+      document.getElementById("scriptDrawer").classList.toggle("collapsed");
+    };
+
+    document.getElementById("tabTimelineBtn").onclick = () => {
+      document.getElementById("tabTimelineBtn").classList.add("active");
+      document.getElementById("tabEditorBtn").classList.remove("active");
+      document.getElementById("segmentList").style.display = "flex";
+      document.getElementById("editorPanel").classList.remove("active");
+    };
+
+    document.getElementById("tabEditorBtn").onclick = () => {
+      document.getElementById("tabEditorBtn").classList.add("active");
+      document.getElementById("tabTimelineBtn").classList.remove("active");
+      document.getElementById("segmentList").style.display = "none";
+      document.getElementById("editorPanel").classList.add("active");
+    };
+
+    // Apply Edited Script in Real Time
+    document.getElementById("applyScriptBtn").onclick = async () => {
+      const text = document.getElementById("rawScriptInput").value.trim();
+      if (!text) return;
+      const res = await fetch("/api/script/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        applyScriptData(data);
+        document.getElementById("tabTimelineBtn").click();
+      }
+    };
+
+    // Upload .hwpx or .txt File
+    document.getElementById("fileUploadInput").onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/script/upload", {
+        method: "POST",
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        applyScriptData(data);
+        document.getElementById("tabTimelineBtn").click();
+      }
+    };
+
+    // Fullscreen Button
+    document.getElementById("fullscreenBtn").onclick = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    };
+
+    // Keyboard Shortcuts for Live Forum Operation
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        jumpToSegment(currentIndex + 1, isPlaying);
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        jumpToSegment(currentIndex - 1, isPlaying);
+      } else if (e.code === "ArrowUp") {
+        e.preventDefault();
+        isMuted = false;
+        currentVolume = Math.min(1, Math.round((currentVolume + 0.05) * 100) / 100);
+        volumeSlider.value = Math.round(currentVolume * 100);
+        applyAudioVolume();
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault();
+        currentVolume = Math.max(0, Math.round((currentVolume - 0.05) * 100) / 100);
+        volumeSlider.value = Math.round(currentVolume * 100);
+        applyAudioVolume();
+      } else if (e.code === "BracketLeft") {
+        e.preventDefault();
+        currentSpeed = Math.max(0.5, Math.round((currentSpeed - 0.1) * 10) / 10);
+        speedSlider.value = currentSpeed;
+        applyAudioSpeed();
+      } else if (e.code === "BracketRight") {
+        e.preventDefault();
+        currentSpeed = Math.min(2.0, Math.round((currentSpeed + 0.1) * 10) / 10);
+        speedSlider.value = currentSpeed;
+        applyAudioSpeed();
+      } else if (e.code === "KeyM") {
+        e.preventDefault();
+        isMuted = !isMuted;
+        applyAudioVolume();
+      } else if (e.code === "KeyF") {
+        e.preventDefault();
+        document.getElementById("fullscreenBtn").click();
+      }
+    });
+
+    // Boot
+    loadDefaultScript();
+    requestAnimationFrame(renderAvatarFrame);
+  </script>
+</body>
+</html>
