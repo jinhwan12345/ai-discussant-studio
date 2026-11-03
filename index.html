@@ -489,7 +489,8 @@
 
     /* Right Collapsible Script Drawer */
     .script-drawer {
-      width: 390px;
+      width: 440px;
+      flex-shrink: 0;
       background: rgba(11, 17, 30, 0.94);
       border-left: 1px solid var(--border-subtle);
       display: flex;
@@ -498,32 +499,40 @@
     }
 
     .script-drawer.collapsed {
-      margin-right: -390px;
+      margin-right: -440px;
     }
 
     .drawer-header {
-      padding: 14px 18px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
     }
 
     .drawer-header h2 {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       color: #e2e8f0;
+      white-space: nowrap;
+      letter-spacing: -0.3px;
+      flex-shrink: 0;
     }
 
     .drawer-tabs {
       display: flex;
+      align-items: center;
       gap: 6px;
+      flex-shrink: 0;
     }
 
     .tab-btn {
       font-size: 12px;
-      padding: 5px 10px;
+      padding: 6px 10px;
       border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .tab-btn.active {
@@ -968,18 +977,11 @@
   <header>
 
     <div class="header-controls">
-      <label class="header-label" style="font-size:12px; color:var(--text-muted);">캐릭터 스타일:</label>
+      <label class="header-label" style="font-size:12px; color:var(--text-muted);">캐릭터 선택:</label>
       <select id="avatarStyleSelect">
-        <option value="astra">캐릭터 1 (여성 학술 AI 아바타)</option>
-        <option value="nova">캐릭터 2 (남성 학술 AI 아바타)</option>
-        <option value="hologram">캐릭터 3 (미래형 홀로그램 AI)</option>
-      </select>
-
-      <label class="header-label" style="font-size:12px; color:var(--text-muted);">음성(TTS):</label>
-      <select id="voiceSelect">
-        <option value="ko-KR-SunHiNeural">음성 1 (여성 · 차분한 학술 톤)</option>
-        <option value="ko-KR-HyunsuMultilingualNeural">음성 2 (남성 · 중후한 학술 톤)</option>
-        <option value="ko-KR-InJoonNeural">음성 3 (남성 · 명확한 발표 톤)</option>
+        <option value="astra">캐릭터 1 (여성 학술 AI · 차분한 톤)</option>
+        <option value="nova">캐릭터 2 (남성 학술 AI · 중후한 톤)</option>
+        <option value="hologram">캐릭터 3 (홀로그램 AI · 명확한 발표 톤)</option>
       </select>
 
       <button id="toggleDrawerBtn" title="대본 목록 및 편집창 열기/닫기">대본 목록</button>
@@ -1190,8 +1192,18 @@
       }
     }
 
+    const CHARACTER_VOICE_MAP = {
+      astra: "ko-KR-SunHiNeural",
+      nova: "ko-KR-HyunsuMultilingualNeural",
+      hologram: "ko-KR-InJoonNeural",
+    };
+
+    function getCurrentVoice() {
+      return CHARACTER_VOICE_MAP[avatarStyle] || "ko-KR-SunHiNeural";
+    }
+
     function getTtsKey(text) {
-      const voice = document.getElementById("voiceSelect").value;
+      const voice = getCurrentVoice();
       return `${voice}|${text}`;
     }
 
@@ -1200,7 +1212,7 @@
       if (audioBlobCache.has(key)) {
         return audioBlobCache.get(key);
       }
-      const voice = document.getElementById("voiceSelect").value;
+      const voice = getCurrentVoice();
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1546,7 +1558,8 @@
       utter.rate = currentSpeed;
       utter.volume = isMuted ? 0 : currentVolume;
       utter.onend = () => {
-        if (isPlaying && currentIndex < segments.length - 1) {
+        const autoAdvance = document.getElementById("autoAdvanceToggle").checked;
+        if (isPlaying && autoAdvance && currentIndex < segments.length - 1) {
           currentIndex++;
           playCurrentSegment();
         } else {
@@ -2130,18 +2143,14 @@
       avatarStyle = e.target.value;
       const speakerNameEl = document.getElementById("speakerName");
       if (avatarStyle === "nova") {
-        document.getElementById("voiceSelect").value = "ko-KR-HyunsuMultilingualNeural";
         if (speakerNameEl) speakerNameEl.textContent = "캐릭터 2";
       } else if (avatarStyle === "astra") {
-        document.getElementById("voiceSelect").value = "ko-KR-SunHiNeural";
         if (speakerNameEl) speakerNameEl.textContent = "캐릭터 1";
       } else if (avatarStyle === "hologram") {
         if (speakerNameEl) speakerNameEl.textContent = "캐릭터 3";
       }
-      if (isPlaying) playCurrentSegment();
-    };
-
-    document.getElementById("voiceSelect").onchange = () => {
+      prefetchSegment(currentIndex);
+      prefetchSegment(currentIndex + 1);
       if (isPlaying) playCurrentSegment();
     };
 
@@ -2166,6 +2175,18 @@
       currentSpeed = parseFloat(e.target.value);
       applyAudioSpeed();
     };
+
+    // Auto-Advance Toggle Status Text Update
+    const autoAdvanceToggle = document.getElementById("autoAdvanceToggle");
+    const autoPlayStatus = document.getElementById("autoPlayStatus");
+    function updateAutoPlayStatus() {
+      if (!autoPlayStatus || !autoAdvanceToggle) return;
+      autoPlayStatus.textContent = autoAdvanceToggle.checked
+        ? "연속 자동 낭독 켜짐"
+        : "연속 자동 낭독 꺼짐";
+    }
+    autoAdvanceToggle.onchange = updateAutoPlayStatus;
+    updateAutoPlayStatus();
 
     document.getElementById("progressTrack").onclick = (e) => {
       const rect = e.currentTarget.getBoundingClientRect();
