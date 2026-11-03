@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>AI 지정토론자 스튜디오</title>
   <style>
     :root {
@@ -23,6 +23,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -30,6 +31,7 @@
       background: radial-gradient(circle at 35% 25%, #111c38 0%, #070b14 70%);
       color: var(--text-main);
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -204,6 +206,7 @@
     #avatarCanvas {
       width: 100%;
       height: 100%;
+      object-fit: contain;
       display: block;
     }
 
@@ -620,12 +623,282 @@
       color: var(--text-muted);
     }
 
+    .drawer-close-btn {
+      display: none;
+      background: rgba(51, 65, 85, 0.85);
+      border: 1px solid var(--border-subtle);
+      color: #f8fafc;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
+
     @media (max-width: 1100px) {
       .stage-center {
-        grid-template-columns: 360px 1fr;
+        grid-template-columns: 340px 1fr;
+        gap: 20px;
       }
       .current-speech-text {
         font-size: 20px;
+      }
+    }
+
+    /* Mobile & Tablet Portrait Optimization */
+    @media (max-width: 900px) {
+      header {
+        height: auto;
+        min-height: 52px;
+        padding: 8px 12px;
+      }
+
+      .header-controls {
+        width: 100%;
+        gap: 6px;
+        margin-left: 0;
+        justify-content: space-between;
+      }
+
+      .header-label {
+        display: none;
+      }
+
+      .header-controls select {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        padding: 6px 8px;
+        text-overflow: ellipsis;
+      }
+
+      #toggleDrawerBtn {
+        font-size: 12px;
+        padding: 6px 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      #fullscreenBtn {
+        display: none;
+      }
+
+      .stage-area {
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        gap: 8px;
+      }
+
+      /* Single-row touch-scrollable section pills */
+      .section-nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        padding-bottom: 2px;
+        flex-shrink: 0;
+      }
+      .section-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .section-pill {
+        font-size: 11px;
+        padding: 5px 11px;
+        max-width: 200px;
+        flex-shrink: 0;
+      }
+
+      /* Stack Avatar on top, Subtitle Card below */
+      .stage-center {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 4px 0;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .avatar-container {
+        width: 100%;
+        height: 33vh;
+        min-height: 185px;
+        max-height: 245px;
+        flex-shrink: 0;
+        border-radius: 18px;
+      }
+
+      .avatar-nameplate {
+        bottom: 8px;
+        left: 10px;
+        right: 10px;
+        padding: 6px 12px;
+        border-radius: 10px;
+      }
+
+      .speaker-name {
+        font-size: 13px;
+      }
+
+      .speaker-role {
+        font-size: 10px;
+      }
+
+      #waveformCanvas {
+        width: 84px;
+        height: 22px;
+      }
+
+      .presentation-panel {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+
+      .section-banner {
+        padding: 7px 12px;
+        border-radius: 0 10px 10px 0;
+        flex-shrink: 0;
+      }
+
+      .section-banner .label {
+        font-size: 9px;
+        margin-bottom: 2px;
+      }
+
+      .section-banner .section-title {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .subtitle-box {
+        flex: 1;
+        min-height: 0;
+        padding: 14px 16px;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow-y: auto;
+      }
+
+      .question-tag {
+        font-size: 11px;
+        padding: 3px 10px;
+        margin-bottom: 8px;
+      }
+
+      .current-speech-text {
+        font-size: 16px;
+        line-height: 1.55;
+      }
+
+      .next-speech-preview {
+        margin-top: 10px;
+        padding-top: 8px;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .shortcut-hint {
+        display: none;
+      }
+
+      /* Mobile Media Player Bar */
+      .playback-bar {
+        flex-direction: column;
+        padding: 10px 12px;
+        gap: 8px;
+        border-radius: 14px;
+        flex-shrink: 0;
+      }
+
+      .progress-wrapper {
+        order: 1;
+        width: 100%;
+        gap: 4px;
+      }
+
+      .progress-info {
+        font-size: 11px;
+      }
+
+      .progress-track {
+        height: 7px;
+      }
+
+      .transport-btns {
+        order: 2;
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .transport-btns button {
+        flex: 1;
+        padding: 9px 10px;
+        font-size: 13px;
+        text-align: center;
+        justify-content: center;
+      }
+
+      .transport-btns .play-btn {
+        flex: 1.5;
+        font-size: 14px;
+      }
+
+      .speed-controls {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 11px;
+      }
+
+      .control-group {
+        padding: 4px 8px;
+        gap: 5px;
+        flex: 1;
+        justify-content: center;
+      }
+
+      .control-group input[type="range"] {
+        width: 56px;
+      }
+
+      .value-badge {
+        min-width: 28px;
+        font-size: 11px;
+      }
+
+      /* Full-screen Slide-over Drawer on Mobile */
+      .script-drawer {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100dvh;
+        z-index: 100;
+        border-left: none;
+        margin-right: 0 !important;
+        transform: translateX(0);
+        transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .script-drawer.collapsed {
+        transform: translateX(100%);
+      }
+
+      .drawer-header {
+        padding: 12px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .drawer-close-btn {
+        display: inline-flex;
+        align-items: center;
       }
     }
   </style>
@@ -636,21 +909,21 @@
   <header>
 
     <div class="header-controls">
-      <label style="font-size:12px; color:var(--text-muted);">캐릭터 스타일:</label>
+      <label class="header-label" style="font-size:12px; color:var(--text-muted);">캐릭터 스타일:</label>
       <select id="avatarStyleSelect">
         <option value="astra">캐릭터 1 (여성 학술 AI 아바타)</option>
         <option value="nova">캐릭터 2 (남성 학술 AI 아바타)</option>
         <option value="hologram">캐릭터 3 (미래형 홀로그램 AI)</option>
       </select>
 
-      <label style="font-size:12px; color:var(--text-muted);">음성(TTS):</label>
+      <label class="header-label" style="font-size:12px; color:var(--text-muted);">음성(TTS):</label>
       <select id="voiceSelect">
         <option value="ko-KR-SunHiNeural">음성 1 (여성 · 차분한 학술 톤)</option>
         <option value="ko-KR-HyunsuMultilingualNeural">음성 2 (남성 · 중후한 학술 톤)</option>
         <option value="ko-KR-InJoonNeural">음성 3 (남성 · 명확한 발표 톤)</option>
       </select>
 
-      <button id="toggleDrawerBtn" title="대본 목록 및 편집창 열기/닫기">대본 편집 / 목록</button>
+      <button id="toggleDrawerBtn" title="대본 목록 및 편집창 열기/닫기">대본 목록</button>
       <button id="fullscreenBtn" title="발표장 전체화면 (단축키 F)">전체화면</button>
     </div>
   </header>
@@ -745,7 +1018,8 @@
         <h2>대본 타임라인 & 실시간 입력</h2>
         <div class="drawer-tabs">
           <button class="tab-btn active" id="tabTimelineBtn">문장 목록</button>
-          <button class="tab-btn" id="tabEditorBtn">대본 직접 수정/업로드</button>
+          <button class="tab-btn" id="tabEditorBtn">대본 수정/업로드</button>
+          <button class="drawer-close-btn" id="closeDrawerBtn" title="닫기">✕ 닫기</button>
         </div>
       </div>
 
@@ -960,7 +1234,12 @@
           </div>
           <div>${seg.text}</div>
         `;
-        item.onclick = () => jumpToSegment(idx, true);
+        item.onclick = () => {
+          jumpToSegment(idx, true);
+          if (window.innerWidth <= 900) {
+            document.getElementById("scriptDrawer").classList.add("collapsed");
+          }
+        };
         list.appendChild(item);
       });
     }
@@ -984,9 +1263,13 @@
         avatarContainer.classList.remove("question-mode");
       }
 
-      // Update section pills
+      // Update section pills & scroll active pill into view on mobile
       document.querySelectorAll(".section-pill").forEach(pill => {
-        pill.classList.toggle("active", pill.dataset.section === seg.section);
+        const isActive = pill.dataset.section === seg.section;
+        pill.classList.toggle("active", isActive);
+        if (isActive) {
+          pill.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        }
       });
 
       // Update segment timeline highlight
@@ -1700,8 +1983,16 @@
     };
 
     // Drawer Toggle & Tabs
+    if (window.innerWidth <= 900) {
+      document.getElementById("scriptDrawer").classList.add("collapsed");
+    }
+
     document.getElementById("toggleDrawerBtn").onclick = () => {
       document.getElementById("scriptDrawer").classList.toggle("collapsed");
+    };
+
+    document.getElementById("closeDrawerBtn").onclick = () => {
+      document.getElementById("scriptDrawer").classList.add("collapsed");
     };
 
     document.getElementById("tabTimelineBtn").onclick = () => {
@@ -1731,6 +2022,9 @@
         const data = await res.json();
         applyScriptData(data);
         document.getElementById("tabTimelineBtn").click();
+        if (window.innerWidth <= 900) {
+          document.getElementById("scriptDrawer").classList.add("collapsed");
+        }
       }
     };
 
@@ -1748,6 +2042,9 @@
         const data = await res.json();
         applyScriptData(data);
         document.getElementById("tabTimelineBtn").click();
+        if (window.innerWidth <= 900) {
+          document.getElementById("scriptDrawer").classList.add("collapsed");
+        }
       }
     };
 
