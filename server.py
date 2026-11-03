@@ -137,9 +137,22 @@ def parse_script_into_segments(raw_text: str):
 
 
 def load_default_script(force_hwpx: bool = False):
-    """Load saved default_script.json or parse .hwpx file in BASE_DIR."""
+    """Load saved custom script, default_script.json, or parse .hwpx file in BASE_DIR."""
+    custom_path = CACHE_DIR / "custom_script.json"
+    if force_hwpx and custom_path.exists():
+        try:
+            custom_path.unlink()
+        except Exception:
+            pass
+    if not force_hwpx and custom_path.exists():
+        try:
+            data = json.loads(custom_path.read_text(encoding="utf-8"))
+            if data.get("segments"):
+                return data
+        except Exception:
+            pass
     json_path = BASE_DIR / "default_script.json"
-    if not force_hwpx and json_path.exists():
+    if json_path.exists():
         try:
             data = json.loads(json_path.read_text(encoding="utf-8"))
             if data.get("segments"):
@@ -180,13 +193,6 @@ async def handle_index(request):
 async def handle_default_script(request):
     reset = request.query.get("reset") == "1"
     data = load_default_script(force_hwpx=reset)
-    if reset:
-        try:
-            (BASE_DIR / "default_script.json").write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-        except Exception:
-            pass
     return web.json_response(data)
 
 
@@ -197,7 +203,7 @@ async def handle_parse_script(request):
         return web.json_response({"error": "대본 내용이 비어 있습니다."}, status=400)
     data = parse_script_into_segments(raw_text)
     try:
-        (BASE_DIR / "default_script.json").write_text(
+        (CACHE_DIR / "custom_script.json").write_text(
             json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
     except Exception:
