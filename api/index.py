@@ -53,21 +53,29 @@ def parse_script_into_segments(raw_text: str):
         lines = lines[:cutoff_idx]
 
     segments = []
+    content_lines = []
     current_section = "지정토론"
     title = "AI 지정토론"
     subtitle = ""
     speaker = "GPT 6 - Astra"
 
+    has_doc_header = (
+        len(lines) >= 3
+        and (lines[1].startswith("—") or lines[1].startswith("-") or "AI 토론" in lines[1])
+    )
+
     for i, line in enumerate(lines):
-        if i == 0 and len(line) < 60 and not re.match(r"^\d+\.", line):
+        if has_doc_header and i == 0 and len(line) < 60 and not re.match(r"^\d+\.", line):
             title = line
             continue
-        if i == 1 and (line.startswith("—") or line.startswith("-") or "AI 토론" in line):
+        if (has_doc_header and i == 1) or line.startswith("— 「"):
             subtitle = line.lstrip("—- ").strip()
             continue
-        if i <= 3 and ("GPT" in line or "Astra" in line) and len(line) < 30:
+        if i <= 3 and ("GPT 6" in line or "Astra" in line) and len(line) < 30:
             speaker = line.strip()
             continue
+
+        content_lines.append(line)
 
         if re.match(r"^[0-9]+\.\s+", line) and len(line) < 85:
             current_section = line
@@ -117,7 +125,7 @@ def parse_script_into_segments(raw_text: str):
         "subtitle": subtitle,
         "speaker": speaker,
         "segments": segments,
-        "raw_text": "\n\n".join(lines)
+        "raw_text": "\n\n".join(content_lines)
     }
 
 

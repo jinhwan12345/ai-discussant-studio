@@ -56,22 +56,30 @@ def parse_script_into_segments(raw_text: str):
         lines = lines[:cutoff_idx]
 
     segments = []
+    content_lines = []
     current_section = "지정토론"
     title = "AI 지정토론"
     subtitle = ""
     speaker = "GPT 6 - Astra"
 
+    has_doc_header = (
+        len(lines) >= 3
+        and (lines[1].startswith("—") or lines[1].startswith("-") or "AI 토론" in lines[1])
+    )
+
     for i, line in enumerate(lines):
-        # Detect document header lines
-        if i == 0 and len(line) < 60 and not re.match(r"^\d+\.", line):
+        # Detect document header lines only when full HWPX header block is present
+        if has_doc_header and i == 0 and len(line) < 60 and not re.match(r"^\d+\.", line):
             title = line
             continue
-        if i == 1 and (line.startswith("—") or line.startswith("-") or "AI 토론" in line):
+        if (has_doc_header and i == 1) or line.startswith("— 「"):
             subtitle = line.lstrip("—- ").strip()
             continue
-        if i <= 3 and ("GPT" in line or "Astra" in line) and len(line) < 30:
+        if i <= 3 and ("GPT 6" in line or "Astra" in line) and len(line) < 30:
             speaker = line.strip()
             continue
+
+        content_lines.append(line)
 
         # Detect section headers like "0. 들어가며: ..." or "1. 첫째, ..."
         if re.match(r"^[0-9]+\.\s+", line) and len(line) < 85:
@@ -124,12 +132,20 @@ def parse_script_into_segments(raw_text: str):
         "subtitle": subtitle,
         "speaker": speaker,
         "segments": segments,
-        "raw_text": "\n\n".join(lines)
+        "raw_text": "\n\n".join(content_lines)
     }
 
 
-def load_default_script():
-    """Find any .hwpx file in BASE_DIR and parse it."""
+def load_default_script(force_hwpx: bool = False):
+    """Load saved default_script.json or parse .hwpx file in BASE_DIR."""
+    json_path = BASE_DIR / "default_script.json"
+    if not force_hwpx and json_path.exists():
+        try:
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+            if data.get("segments"):
+                return data
+        except Exception:
+            pass
     hwpx_files = list(BASE_DIR.glob("*.hwpx"))
     if hwpx_files:
         raw_text = extract_text_from_hwpx(hwpx_files[0])
@@ -162,7 +178,15 @@ async def handle_index(request):
 
 
 async def handle_default_script(request):
-    data = load_default_script()
+    reset = request.query.get("reset") == "1"
+    data = load_default_script(force_hwpx=reset)
+    if reset:
+        try:
+            (BASE_DIR / "default_script.json").write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        except Exception:
+            pass
     return web.json_response(data)
 
 
@@ -172,6 +196,12 @@ async def handle_parse_script(request):
     if not raw_text:
         return web.json_response({"error": "대본 내용이 비어 있습니다."}, status=400)
     data = parse_script_into_segments(raw_text)
+    try:
+        (BASE_DIR / "default_script.json").write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        pass
     return web.json_response(data)
 
 

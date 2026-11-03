@@ -589,6 +589,7 @@
     .editor-panel {
       display: none;
       flex: 1;
+      min-height: 0;
       flex-direction: column;
       padding: 14px;
       gap: 10px;
@@ -596,6 +597,13 @@
 
     .editor-panel.active {
       display: flex;
+    }
+
+    .editor-panel textarea,
+    input[type="text"],
+    .inline-edit-textarea {
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     .editor-panel textarea {
@@ -607,15 +615,66 @@
       padding: 12px;
       color: #f8fafc;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.6;
       resize: none;
+      outline: none;
+    }
+
+    .editor-panel textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
     }
 
     .editor-actions {
       display: flex;
       gap: 8px;
       justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .subtitle-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .inline-edit-btn {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(51, 65, 85, 0.7);
+      border: 1px solid var(--border-subtle);
+      color: #cbd5e1;
+      margin-left: auto;
+    }
+
+    .inline-edit-box {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .inline-edit-box.active {
+      display: flex;
+    }
+
+    .inline-edit-textarea {
+      width: 100%;
+      min-height: 84px;
+      background: rgba(7, 11, 20, 0.92);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
     }
 
     .shortcut-hint {
@@ -957,9 +1016,19 @@
           </div>
 
           <div class="subtitle-box" id="subtitleBox">
-            <div class="question-tag">★ 발표자에게 드리는 핵심 질문</div>
+            <div class="subtitle-header-bar">
+              <div class="question-tag" style="margin-bottom:0;">★ 발표자에게 드리는 핵심 질문</div>
+              <button class="inline-edit-btn" id="inlineEditBtn" title="현재 표시된 문장을 바로 수정합니다">✏️ 현재 문장 수정</button>
+            </div>
             <div class="current-speech-text" id="currentSpeechText">
               대본을 불러오는 중입니다...
+            </div>
+            <div class="inline-edit-box" id="inlineEditBox">
+              <textarea class="inline-edit-textarea" id="inlineEditTextarea"></textarea>
+              <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button id="cancelInlineEditBtn" style="font-size:12px; padding:5px 12px;">취소</button>
+                <button class="primary-btn" id="saveInlineEditBtn" style="font-size:12px; padding:5px 14px;">저장 반영</button>
+              </div>
             </div>
             <div class="next-speech-preview" id="nextSpeechPreview">
               <span>다음 대사:</span> <span id="nextSpeechText">-</span>
@@ -1029,14 +1098,17 @@
       <!-- Tab 2: Live Raw Script Editor & File Upload -->
       <div class="editor-panel" id="editorPanel">
         <div style="font-size:12px; color:var(--text-muted);">
-          아래에 대본을 붙여넣거나 수정한 뒤 <b>[대본 즉시 반영]</b>을 누르면 실시간으로 문장이 분할되고 AI 캐릭터가 읽습니다. (.hwpx / .txt 파일 업로드 가능)
+          아래에 대본을 붙여넣거나 수정한 뒤 <b>[대본 즉시 반영]</b>을 누르면 실시간으로 문장이 분할되고 자동 저장됩니다. (.hwpx / .txt 파일 업로드 가능)
         </div>
         <textarea id="rawScriptInput" placeholder="여기에 토론 대본을 입력하세요..."></textarea>
         <div class="editor-actions">
-          <label style="background:rgba(30,41,59,0.9); border:1px solid var(--border-subtle); padding:7px 12px; border-radius:8px; font-size:12px; cursor:pointer;">
-            📂 파일 열기 (.hwpx/.txt)
-            <input type="file" id="fileUploadInput" accept=".hwpx,.txt" style="display:none;" />
-          </label>
+          <div style="display:flex; gap:6px;">
+            <label style="background:rgba(30,41,59,0.9); border:1px solid var(--border-subtle); padding:7px 11px; border-radius:8px; font-size:12px; cursor:pointer;">
+              📂 파일 열기
+              <input type="file" id="fileUploadInput" accept=".hwpx,.txt" style="display:none;" />
+            </label>
+            <button id="resetScriptBtn" style="font-size:12px; padding:7px 10px;" title="원본 기본 대본으로 복원">↺ 기본 대본 복원</button>
+          </div>
           <button class="primary-btn" id="applyScriptBtn">✨ 대본 즉시 반영</button>
         </div>
       </div>
@@ -1164,36 +1236,156 @@
     }
 
     // =========================================================================
-    // 2. SCRIPT LOADING & UI SYNC
+    // 2. SCRIPT LOADING, CLIENT-SIDE PARSER & UI SYNC
     // =========================================================================
-    async function loadDefaultScript() {
-      const res = await fetch("/api/script/default");
-      const data = await res.json();
-      applyScriptData(data);
+    const CUSTOM_SCRIPT_KEY = "ai_discussant_custom_script_v1";
+
+    function parseScriptClient(rawText) {
+      let lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const cutoffIdx = lines.findIndex(l => l.includes("제공 프롬프트") || l.includes("[제공 자료]"));
+      if (cutoffIdx !== -1) {
+        lines = lines.slice(0, cutoffIdx);
+      }
+
+      const parsedSegments = [];
+      const contentLines = [];
+      let currentSection = "지정토론";
+      let title = "AI 지정토론";
+      let subtitle = "";
+      let speaker = "캐릭터 1";
+
+      const hasDocHeader = lines.length >= 3 && (lines[1].startsWith("—") || lines[1].startsWith("-") || lines[1].includes("AI 토론"));
+
+      lines.forEach((line, i) => {
+        if (hasDocHeader && i === 0 && line.length < 60 && !/^\d+\./.test(line)) {
+          title = line;
+          return;
+        }
+        if ((hasDocHeader && i === 1) || line.startsWith("— 「")) {
+          subtitle = line.replace(/^[—\-\s]+/, "").trim();
+          return;
+        }
+        if (i <= 3 && (line.includes("GPT 6") || line.includes("Astra")) && line.length < 30) {
+          speaker = line;
+          return;
+        }
+
+        contentLines.push(line);
+
+        if (/^[0-9]+\.\s+/.test(line) && line.length < 85) {
+          currentSection = line;
+          parsedSegments.push({
+            id: parsedSegments.length,
+            type: "section_header",
+            section: currentSection,
+            text: line,
+            is_question: false
+          });
+          return;
+        }
+
+        const isQuestion = /(첫 번째 질문|두 번째 질문|세 번째 질문|질문입니다)/.test(line) || line.endsWith("니까?") || line.endsWith("까요?");
+        const sentences = line.split(/(?<=[.?!])\s+/);
+        let chunk = [];
+
+        sentences.forEach(sent => {
+          sent = sent.trim();
+          if (!sent) return;
+          chunk.push(sent);
+          if (chunk.join(" ").length > 110 || sent.endsWith("?") || chunk.length >= 2) {
+            const segText = chunk.join(" ");
+            parsedSegments.push({
+              id: parsedSegments.length,
+              type: (isQuestion || segText.endsWith("?")) ? "question" : "speech",
+              section: currentSection,
+              text: segText,
+              is_question: isQuestion || segText.endsWith("?")
+            });
+            chunk = [];
+          }
+        });
+
+        if (chunk.length > 0) {
+          const segText = chunk.join(" ");
+          parsedSegments.push({
+            id: parsedSegments.length,
+            type: (isQuestion || segText.endsWith("?")) ? "question" : "speech",
+            section: currentSection,
+            text: segText,
+            is_question: isQuestion || segText.endsWith("?")
+          });
+        }
+      });
+
+      return {
+        title,
+        subtitle,
+        speaker,
+        segments: parsedSegments,
+        raw_text: contentLines.join("\n\n")
+      };
     }
 
-    function applyScriptData(data) {
+    function rebuildRawTextFromSegments(segs) {
+      return segs.map(s => s.text).join("\n\n");
+    }
+
+    async function loadDefaultScript(forceServerReset = false) {
+      if (!forceServerReset) {
+        try {
+          const saved = localStorage.getItem(CUSTOM_SCRIPT_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && Array.isArray(parsed.segments) && parsed.segments.length > 0) {
+              applyScriptData(parsed, false, false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("Local script load skipped:", e);
+        }
+      }
+      const url = forceServerReset ? "/api/script/default?reset=1" : "/api/script/default";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.raw_text) {
+        // Strip legacy header lines if present in raw_text
+        const cleaned = parseScriptClient(data.raw_text);
+        data.raw_text = cleaned.raw_text;
+      }
+      applyScriptData(data, false, false);
+    }
+
+    function applyScriptData(data, preserveIndex = false, saveCustom = false) {
       stopPlayback();
       scriptData = data;
       segments = data.segments || [];
-      currentIndex = 0;
+      if (preserveIndex) {
+        currentIndex = Math.max(0, Math.min(currentIndex, segments.length - 1));
+      } else {
+        currentIndex = 0;
+      }
 
-      const docTitleEl = document.getElementById("docTitle");
-      if (docTitleEl) docTitleEl.textContent = data.title || "AI 지정토론";
-      const docSubtitleEl = document.getElementById("docSubtitle");
-      if (docSubtitleEl) docSubtitleEl.textContent = data.subtitle || "";
-      const speakerNameEl = document.getElementById("speakerName");
-      if (speakerNameEl) speakerNameEl.textContent = "캐릭터 1";
+      if (saveCustom) {
+        try {
+          localStorage.setItem(CUSTOM_SCRIPT_KEY, JSON.stringify(data));
+        } catch (e) {
+          console.warn("Could not save custom script to localStorage:", e);
+        }
+      }
+
       const rawScriptInputEl = document.getElementById("rawScriptInput");
-      if (rawScriptInputEl) rawScriptInputEl.value = data.raw_text || "";
+      if (rawScriptInputEl) {
+        rawScriptInputEl.value = data.raw_text || rebuildRawTextFromSegments(segments);
+      }
 
       renderSectionNav();
       renderSegmentList();
       updateStageUI();
 
-      // Pre-fetch first two segments immediately for instant start
-      prefetchSegment(0);
-      prefetchSegment(1);
+      // Pre-fetch current and next segment immediately for instant start
+      prefetchSegment(currentIndex);
+      prefetchSegment(currentIndex + 1);
     }
 
     function renderSectionNav() {
@@ -2009,29 +2201,112 @@
       document.getElementById("editorPanel").classList.add("active");
     };
 
-    // Apply Edited Script in Real Time
+    // Inline Sentence Edit on Main Stage
+    const inlineEditBtn = document.getElementById("inlineEditBtn");
+    const inlineEditBox = document.getElementById("inlineEditBox");
+    const inlineEditTextarea = document.getElementById("inlineEditTextarea");
+    const currentSpeechTextEl = document.getElementById("currentSpeechText");
+
+    inlineEditBtn.onclick = () => {
+      if (!segments.length) return;
+      stopPlayback();
+      inlineEditTextarea.value = segments[currentIndex].text;
+      currentSpeechTextEl.style.display = "none";
+      inlineEditBox.classList.add("active");
+      inlineEditTextarea.focus();
+    };
+
+    document.getElementById("cancelInlineEditBtn").onclick = () => {
+      inlineEditBox.classList.remove("active");
+      currentSpeechTextEl.style.display = "block";
+    };
+
+    document.getElementById("saveInlineEditBtn").onclick = () => {
+      const newText = inlineEditTextarea.value.trim();
+      if (!newText || !segments.length) return;
+
+      segments[currentIndex].text = newText;
+      const isQ = /(첫 번째 질문|두 번째 질문|세 번째 질문|질문입니다)/.test(newText) || newText.endsWith("?");
+      segments[currentIndex].is_question = isQ;
+      if (segments[currentIndex].type !== "section_header") {
+        segments[currentIndex].type = isQ ? "question" : "speech";
+      }
+
+      const updatedRaw = rebuildRawTextFromSegments(segments);
+      if (scriptData) {
+        scriptData.segments = segments;
+        scriptData.raw_text = updatedRaw;
+      }
+
+      inlineEditBox.classList.remove("active");
+      currentSpeechTextEl.style.display = "block";
+
+      applyScriptData(scriptData, true, true);
+
+      // Sync to backend in background
+      fetch("/api/script/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: updatedRaw })
+      }).catch(() => {});
+    };
+
+    // Apply Edited Script in Real Time (Client-Side Instant + Server Sync)
     document.getElementById("applyScriptBtn").onclick = async () => {
       const text = document.getElementById("rawScriptInput").value.trim();
       if (!text) return;
-      const res = await fetch("/api/script/parse", {
+
+      const applyBtn = document.getElementById("applyScriptBtn");
+      const origLabel = applyBtn.textContent;
+      applyBtn.textContent = "✅ 대본 반영 완료!";
+
+      // Parse immediately on client so it never fails or drops lines
+      const parsedData = parseScriptClient(text);
+      applyScriptData(parsedData, false, true);
+
+      // Sync with server in background
+      fetch("/api/script/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        applyScriptData(data);
-        document.getElementById("tabTimelineBtn").click();
-        if (window.innerWidth <= 900) {
-          document.getElementById("scriptDrawer").classList.add("collapsed");
-        }
+      }).catch(() => {});
+
+      setTimeout(() => {
+        applyBtn.textContent = origLabel;
+      }, 1200);
+
+      document.getElementById("tabTimelineBtn").click();
+      if (window.innerWidth <= 900) {
+        document.getElementById("scriptDrawer").classList.add("collapsed");
       }
+    };
+
+    // Reset to Original Default Script
+    document.getElementById("resetScriptBtn").onclick = async () => {
+      try {
+        localStorage.removeItem(CUSTOM_SCRIPT_KEY);
+      } catch (e) {}
+      await loadDefaultScript(true);
+      document.getElementById("tabTimelineBtn").click();
     };
 
     // Upload .hwpx or .txt File
     document.getElementById("fileUploadInput").onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
+      if (file.name.toLowerCase().endsWith(".txt")) {
+        const text = await file.text();
+        const parsedData = parseScriptClient(text);
+        parsedData.filename = file.name;
+        applyScriptData(parsedData, false, true);
+        document.getElementById("tabTimelineBtn").click();
+        if (window.innerWidth <= 900) {
+          document.getElementById("scriptDrawer").classList.add("collapsed");
+        }
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/script/upload", {
@@ -2040,12 +2315,13 @@
       });
       if (res.ok) {
         const data = await res.json();
-        applyScriptData(data);
+        applyScriptData(data, false, true);
         document.getElementById("tabTimelineBtn").click();
         if (window.innerWidth <= 900) {
           document.getElementById("scriptDrawer").classList.add("collapsed");
         }
       }
+      e.target.value = "";
     };
 
     // Fullscreen Button
